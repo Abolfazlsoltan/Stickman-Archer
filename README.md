@@ -1,70 +1,56 @@
 # Stickman Archer
 
-Stylized stickman archer as a **real glTF 2.0 model** with a joint hierarchy and authored animation clips.
+Skinned stickman archer for a side-view strategy game. One fused body, a deforming scarf, bow in the left hand, quiver, and four game clips. Built in Blender and exported as glTF.
 
-This is not the cinematic painting from the character sheet, and it is not a smooth-skinned high-poly sculpt. It is a segmented 3D stickman (rigid volumes parented to bones) that imports into Blender, Unity (glTFast), Godot, and Three.js and **plays**.
+![front](previews/pose_front.png)
 
-## What is actually in this repository
+| Front | Side | Back |
+|---|---|---|
+| ![front](previews/pose_front.png) | ![side](previews/pose_side.png) | ![back](previews/pose_back.png) |
+
+| Walk | Run | Jump |
+|---|---|---|
+| ![walk](previews/walk_07.png) | ![run](previews/run_01.png) | ![jump](previews/jump_28.png) |
+
+## Files
 
 | File | What it is |
 |---|---|
-| [models/StickmanArcher.glb](models/StickmanArcher.glb) | Rigged model, materials, 5 color variants, 12 animation clips |
-| [tools/generate_stickman.py](tools/generate_stickman.py) | Generator that builds that GLB. Re-runnable, no manual DCC step |
-| `Assets/Scripts/*.cs` | Earlier Unity 2D controller sketches. They are **not** wired to the GLB |
+| [models/StickmanArcher.glb](models/StickmanArcher.glb) | Default blue archer. Skinned mesh, 30 joints, Idle / Walk / Run / Jump |
+| [models/variants/](models/variants) | Same rig and clips, scarf and glow recolored: Blue, Red, Gold, Green, Violet |
+| [tools/build_archer.py](tools/build_archer.py) | Blender 4.2 script that rebuilds the mesh, weights, clips, and GLBs |
+| [previews/](previews) | Cycles stills used to check silhouette and motion |
 
-Not included, because they were not produced: FBX, PSD, PNG sprite sheets, hand-painted textures, smooth skin weights, a Unity Humanoid avatar.
+`Assets/Scripts` is an older 2D Unity sketch. It is not connected to this GLB.
 
-## Model facts
+## Model
 
-- Units: meters. Up: +Y. Facing: +Z.
-- About 1.42 m to the top of the head. Feet rest near the ground.
-- 34 nodes. Volumes parented to joints (head, torso, arms, legs, scarf chain, quiver, bow, crystal).
-- Materials are solid PBR colors. Eyes, crystal, arrow tips, and scarf accents use emissive factors. There is no texture image.
-- Color variants use `KHR_materials_variants`: **Blue** (default), **Red**, **Gold**, **Green**, **Purple**. They recolor the scarf and the emissive parts. Blender's glTF importer and Unity glTFast both read this extension. Engines that ignore it still show the Blue default.
+- Meters, Y-up. Faces −Y. About 1.68 m tall. Feet rest on the ground.
+- Body is one manifold mesh (voxel-remeshed capsules), not separate cubes. Scarf, bow, quiver, belt, gem, bracers, and eyes are extra skinned meshes.
+- 30 deform joints: spine chain, arms, legs, and two scarf tails of five bones each.
+- Materials are solid PBR. Eyes, gem, and arrow tips emit. No texture maps.
+- Color is a separate GLB per variant, not `KHR_materials_variants`. Drop the file you want in the engine.
 
-## Animations
+## Clips
 
-All clips are keyframed rotations (plus hips translation). Loop flags are not a core glTF field; set looping in the engine from this table.
-
-| Clip | Duration | Loop in engine |
+| Clip | Length | Loop |
 |---|---|---|
-| Idle | 2.40 s | yes |
-| Walk | 1.00 s | yes |
-| Run | 0.60 s | yes |
-| Jump | 0.90 s | no |
-| Landing | 0.45 s | no |
-| Turn | 0.55 s | no |
-| Celebrate | 1.00 s | yes |
-| Draw | 0.45 s | no |
-| Shoot | 0.40 s | no |
-| Hit | 0.45 s | no |
-| Fall | 0.60 s | no |
-| Death | 1.40 s | no |
+| Idle | 4.0 s | yes |
+| Walk | 1.0 s | yes |
+| Run | 0.67 s | yes |
+| Jump | 2.17 s | no |
 
-Walk and Run are in place. Jump, Fall, and Death move the hips. Verified by loading the file with Three.js `GLTFLoader` and sampling `AnimationMixer`: the walk cycle changes the thigh rotation, and jump raises the hips.
+Walk and Run stay in place. Jump moves the armature root up (crouch, hop, land). Set looping in the engine. The clips are NLA tracks inside the GLB.
 
-## Use it
+## Use
 
-### Blender
+Blender: File → Import → glTF 2.0. The Dope Sheet lists Idle, Walk, Run, Jump.
 
-File → Import → glTF 2.0 → `models/StickmanArcher.glb`.  
-The dope sheet lists the clips. Material variants show up if your Blender build exposes glTF variants (4.x does, under the mesh material slots / variant UI).
+Unity (glTFast): import the GLB, put an Animator on the root, and mark Idle, Walk, and Run as Loop Time.
 
-### Unity (glTFast)
+Godot 4: the import creates an `AnimationPlayer` with the four clips.
 
-1. Add the [glTFast](https://docs.unity3d.com/Packages/com.unity.cloud.gltfast@6.0/manual/index.html) package.
-2. Drop `StickmanArcher.glb` into `Assets`.
-3. The importer creates a prefab, materials, and `AnimationClip` assets named Idle, Walk, Run, and the rest.
-4. Put an Animator on the prefab root. Add the clips as states. Mark Idle, Walk, Run, and Celebrate as Loop Time.
-5. To swap color: select the variant in the glTFast importer (Materials Variants) or duplicate the imported materials and assign `Scarf_*` / `Glow_*`.
-
-The old scripts under `Assets/Scripts` expect a 2D `Rigidbody2D` and sprite renderers. Do not drop them on this model.
-
-### Godot 4
-
-Import the GLB. The scene contains the skeleton hierarchy and an `AnimationPlayer` with the twelve clips.
-
-### Three.js
+Three.js:
 
 ```js
 const gltf = await loader.loadAsync("./models/StickmanArcher.glb");
@@ -74,12 +60,10 @@ mixer.clipAction(gltf.animations.find((c) => c.name === "Walk")).play();
 
 ## Rebuild
 
+Needs Blender 4.2 on `PATH`.
+
 ```bash
-python3 tools/generate_stickman.py
+blender --background --python tools/build_archer.py
 ```
 
-Writes `models/StickmanArcher.glb` next to the script when you copy it, or edit `OUT` in the script. Needs only the Python standard library.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+GLBs and, with `-- --render`, the preview PNGs are written to `build/`. Copy `build/StickmanArcher.glb` to `models/` and the `StickmanArcher_*.glb` files to `models/variants/`.
